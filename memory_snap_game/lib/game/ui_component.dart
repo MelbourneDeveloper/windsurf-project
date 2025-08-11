@@ -12,6 +12,8 @@ class UIComponent extends Component with HasGameReference<MemorySnapGame> {
   late TextComponent restartText;
   late TextComponent numbersModeText;
   late TextComponent foodModeText;
+  late TextPaint smallText;
+  late TextPaint smallTextSelected;
 
   @override
   Future<void> onLoad() async {
@@ -64,11 +66,18 @@ class UIComponent extends Component with HasGameReference<MemorySnapGame> {
       textRenderer: textPaint,
     );
 
-    final smallText = TextPaint(
+    smallText = TextPaint(
       style: const TextStyle(
         color: Colors.white,
         fontSize: 24.0,
         fontWeight: FontWeight.w600,
+      ),
+    );
+    smallTextSelected = TextPaint(
+      style: const TextStyle(
+        color: Color(0xFFFFF59D), // amber 200
+        fontSize: 26.0,
+        fontWeight: FontWeight.w800,
       ),
     );
 
@@ -85,6 +94,8 @@ class UIComponent extends Component with HasGameReference<MemorySnapGame> {
     );
 
     addAll([hudBg, scoreText, movesText, timerText, timer, numbersModeText, foodModeText, restartText]);
+    // Initial highlight
+    updateModeHighlight(game.mode);
   }
 
   void updateScore(int score) {
@@ -112,5 +123,15 @@ class UIComponent extends Component with HasGameReference<MemorySnapGame> {
     restartText.position = Vector2(size.x - 120, 20);
     numbersModeText.position = Vector2(size.x - 260, 70);
     foodModeText.position = Vector2(size.x - 140, 70);
+  }
+
+  void updateModeHighlight(GameMode mode) {
+    if (mode == GameMode.numbers) {
+      numbersModeText.textRenderer = smallTextSelected;
+      foodModeText.textRenderer = smallText;
+    } else {
+      numbersModeText.textRenderer = smallText;
+      foodModeText.textRenderer = smallTextSelected;
+    }
   }
 }

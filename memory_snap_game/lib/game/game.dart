@@ -5,6 +5,7 @@ import 'package:flame/input.dart';
 import 'package:memory_snap_game/game/card_component.dart';
 import 'ui_component.dart';
 import 'dart:ui';
+import 'dart:async';
 
 enum GameMode { numbers, food }
 
@@ -118,6 +119,7 @@ class MemorySnapGame extends FlameGame with TapDetector {
     if (uiComponent.numbersModeText.containsPoint(touchPosition)) {
       if (mode != GameMode.numbers) {
         mode = GameMode.numbers;
+        uiComponent.updateModeHighlight(mode);
         _restart();
       }
       return;
@@ -125,6 +127,7 @@ class MemorySnapGame extends FlameGame with TapDetector {
     if (uiComponent.foodModeText.containsPoint(touchPosition)) {
       if (mode != GameMode.food) {
         mode = GameMode.food;
+        uiComponent.updateModeHighlight(mode);
         _restart();
       }
       return;
@@ -139,7 +142,8 @@ class MemorySnapGame extends FlameGame with TapDetector {
     }
     if (tappedCard == null) return;
 
-    tappedCard.reveal();
+    // Animate flip
+    tappedCard.flipToReveal();
     moves++;
     uiComponent.updateMoves(moves);
 
@@ -158,14 +162,17 @@ class MemorySnapGame extends FlameGame with TapDetector {
       uiComponent.updateScore(score);
       firstCard!.match();
       secondCard!.match();
+      firstCard!.playMatchPulse();
+      secondCard!.playMatchPulse();
       firstCard = null;
       secondCard = null;
       canTap = true;
       checkGameComplete();
     } else {
-      Future.delayed(Duration(milliseconds: 1000), () {
-        firstCard!.hide();
-        secondCard!.hide();
+      // Not a match, flip back after delay with animation
+      Future.delayed(const Duration(milliseconds: 500), () {
+        firstCard?.flipToHide();
+        secondCard?.flipToHide();
         firstCard = null;
         secondCard = null;
         canTap = true;
