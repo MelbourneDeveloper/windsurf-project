@@ -4,14 +4,25 @@ import 'package:flutter/material.dart';
 import 'game.dart';
 
 class UIComponent extends Component with HasGameReference<MemorySnapGame> {
+  late RectangleComponent hudBg;
   late TextComponent scoreText;
   late TextComponent movesText;
   late TextComponent timerText;
   late TimerComponent timer;
   late TextComponent restartText;
+  late TextComponent numbersModeText;
+  late TextComponent foodModeText;
 
   @override
   Future<void> onLoad() async {
+    // HUD background bar
+    hudBg = RectangleComponent(
+      position: Vector2.zero(),
+      size: Vector2(game.size.x, 120),
+      anchor: Anchor.topLeft,
+      paint: Paint()..color = const Color(0xFF5C6BC0), // indigo 400
+    );
+
     final textPaint = TextPaint(
       style: TextStyle(
         color: Colors.white,
@@ -49,11 +60,31 @@ class UIComponent extends Component with HasGameReference<MemorySnapGame> {
 
     restartText = TextComponent(
       text: 'Restart',
-      position: Vector2(game.size.x - 100, 20),
+      position: Vector2(game.size.x - 120, 20),
       textRenderer: textPaint,
     );
 
-    addAll([scoreText, movesText, timerText, timer, restartText]);
+    final smallText = TextPaint(
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 24.0,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+
+    numbersModeText = TextComponent(
+      text: 'Numbers',
+      position: Vector2(game.size.x - 260, 70),
+      textRenderer: smallText,
+    );
+
+    foodModeText = TextComponent(
+      text: 'Food',
+      position: Vector2(game.size.x - 140, 70),
+      textRenderer: smallText,
+    );
+
+    addAll([hudBg, scoreText, movesText, timerText, timer, numbersModeText, foodModeText, restartText]);
   }
 
   void updateScore(int score) {
@@ -71,5 +102,15 @@ class UIComponent extends Component with HasGameReference<MemorySnapGame> {
     updateScore(0);
     updateMoves(0);
     timerText.text = 'Time: 00:00';
+  }
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    hudBg.size = Vector2(size.x, 120);
+    // Reposition right-aligned labels
+    restartText.position = Vector2(size.x - 120, 20);
+    numbersModeText.position = Vector2(size.x - 260, 70);
+    foodModeText.position = Vector2(size.x - 140, 70);
   }
 }

@@ -6,10 +6,13 @@ import 'package:memory_snap_game/game/card_component.dart';
 import 'ui_component.dart';
 import 'dart:ui';
 
+enum GameMode { numbers, food }
+
 class MemorySnapGame extends FlameGame with TapDetector {
   double gameTime = 0;
   late UIComponent uiComponent;
   bool _initialized = false;
+  GameMode mode = GameMode.food;
 
   @override
   Future<void> onLoad() async {
@@ -40,29 +43,54 @@ class MemorySnapGame extends FlameGame with TapDetector {
 
     final grid = 4;
     // Reserve some vertical space for UI at the top
-    final double topPadding = 140;
-    final double usableHeight = (size.y - topPadding).clamp(0, size.y);
-    final cardSize = Vector2(size.x / grid, usableHeight / grid);
+    const double topPadding = 140;
+    const double margin = 12; // spacing between cards and edges
+    final double usableWidth = (size.x - (grid + 1) * margin).clamp(0, size.x);
+    final double usableHeight = (size.y - topPadding - (grid + 1) * margin).clamp(0, size.y);
+    final double cellW = usableWidth / grid;
+    final double cellH = usableHeight / grid;
+    final cardSize = Vector2(cellW, cellH);
     
     // Create pairs of cards
-    final cardValues = List.generate(grid * grid ~/ 2, (index) => index + 1);
-    final allCards = [...cardValues, ...cardValues];
-    allCards.shuffle();
+    final pairs = _buildPairs(grid);
 
     cards = [];
-    for (int i = 0; i < allCards.length; i++) {
+    for (int i = 0; i < pairs.length; i++) {
       final x = (i % grid).toDouble();
       final y = (i ~/ grid).toDouble();
-      final pos = Vector2(x * cardSize.x, topPadding + y * cardSize.y);
+      final pos = Vector2(
+        margin + x * (cellW + margin),
+        topPadding + margin + y * (cellH + margin),
+      );
+      final p = pairs[i];
       cards.add(CardComponent(
         position: pos,
         size: cardSize,
-        value: allCards[i],
+        valueId: p.$1,
+        label: p.$2,
       ));
     }
 
     addAll(cards);
     _initialized = true;
+  }
+
+  // Returns a shuffled list of pairs (valueId, label)
+  List<(int, String)> _buildPairs(int grid) {
+    final count = grid * grid ~/ 2;
+    List<(int, String)> base;
+    switch (mode) {
+      case GameMode.numbers:
+        base = List.generate(count, (i) => (i + 1, '${i + 1}'));
+        break;
+      case GameMode.food:
+        const foods = ['🍎','🍌','🍇','🍓','🍕','🍦','🍪','🥕','🍉','🍒','🥑','🌽'];
+        base = List.generate(count, (i) => (i, foods[i % foods.length]));
+        break;
+    }
+    final all = [...base, ...base];
+    all.shuffle();
+    return all;
   }
 
   @override
@@ -81,6 +109,26 @@ class MemorySnapGame extends FlameGame with TapDetector {
     if (!canTap) return;
     // Use widget coordinates (no camera transforms in this game)
     final Vector2 touchPosition = info.eventPosition.widget;
+
+    // Handle HUD buttons first
+    if (uiComponent.restartText.containsPoint(touchPosition)) {
+      _restart();
+      return;
+    }
+    if (uiComponent.numbersModeText.containsPoint(touchPosition)) {
+      if (mode != GameMode.numbers) {
+        mode = GameMode.numbers;
+        _restart();
+      }
+      return;
+    }
+    if (uiComponent.foodModeText.containsPoint(touchPosition)) {
+      if (mode != GameMode.food) {
+        mode = GameMode.food;
+        _restart();
+      }
+      return;
+    }
 
     CardComponent? tappedCard;
     for (final card in cards) {
@@ -105,9 +153,9 @@ class MemorySnapGame extends FlameGame with TapDetector {
 
   void checkMatch() {
     canTap = false;
-    if (firstCard!.value == secondCard!.value) {
+    if (firstCard!.valueId == secondCard!.valueId) {
       score += 10;
-    uiComponent.updateScore(score);
+      uiComponent.updateScore(score);
       firstCard!.match();
       secondCard!.match();
       firstCard = null;
@@ -129,7 +177,16 @@ class MemorySnapGame extends FlameGame with TapDetector {
     if (cards.every((card) => card.isMatched)) {
       // Game complete logic
       print('Game complete! Score: $score, Moves: $moves');
-    uiComponent.reset();
+      uiComponent.reset();
     }
+  }
+
+  void _restart() {
+    score = 0;
+    moves = 0;
+    gameTime = 0;
+    uiComponent.updateScore(0);
+    uiComponent.updateMoves(0);
+    initializeGame();
   }
 }
